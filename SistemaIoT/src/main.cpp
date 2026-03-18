@@ -5,9 +5,13 @@
 
 // Configuracion del sensor DHT22 (Temperatura y Humedad )
 #define DHTPIN 15     
-#define DHTTYPE DHT22 
+#define DHTTYPE DHT22
+
+// Definición del PIN para el sensor de humedad del suelo
+#define SOIL_MOISTURE_PIN 34
 
 // ---- Creamos el objeto de los sensores ----
+
 // Creacion sensor de temperatura y humedad DHT22
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -30,6 +34,9 @@ void setup() {
 
   // Arrancamos el sensor BH1750
   lightMeter.begin();
+
+  // Configuramos SOIL_MOISTURE_PIN como entrada
+  pinMode(SOIL_MOISTURE_PIN, INPUT);
 }
 
 // ---- Loop principal ----
@@ -37,24 +44,41 @@ void loop() {
   // Pausa de 10 segundos entre lecturas
   delay(10000);
 
+  // ---- Lecturas de sensores ----
+
   // Leemos la humedad y la temperatura
   float humedad = dht.readHumidity();
   float temperatura = dht.readTemperature();
 
-  // Comprobamos si hubo algún error en la lectura
+  // Leemos el nivel de luz
+  float lightLevel = lightMeter.readLightLevel();
+
+  // Leemos el nivel de humedad del suelo
+  int soilMoistureValue = analogRead(SOIL_MOISTURE_PIN);
+
+  // ---- Comprobaciones de errores ----
+
+  // Comprobacion en el sensor DHT22
   if (isnan(humedad) || isnan(temperatura)) {
     Serial.println("¡Error: No se pudo leer el sensor DHT22!");
     return; // Volvemos al inicio del loop para intentar de nuevo
   }
 
-  // Leemos el nivel de luz
-  float lightLevel = lightMeter.readLightLevel();
-
-  // Comprobamos si hubo algún error en la lectura
+  // Comprobacion en el sensor BH1750
   if(lightLevel < 0) {
     Serial.println("¡Error: No se pudo leer el sensor BH1750!");
     return; // Volvemos al inicio del loop para intentar de nuevo
   }
+
+  // Comprobacion en el sensor de humedad del suelo
+  if(soilMoistureValue < 0 || soilMoistureValue > 4095) {
+    Serial.println("¡Error: No se pudo leer el sensor de humedad del suelo!");
+    return; // Volvemos al inicio del loop para intentar de nuevo
+  }
+  // Mapeamos el valor a un porcentaje (ajustar según calibración)
+  int soilMoisturePercent = map(soilMoistureValue, 4095, 0, 0, 100);
+
+  // ---- Impresion de resultados en consola ----
 
   /*
   // Imprimimos los valores de la humedad y la temperatura
@@ -64,8 +88,15 @@ void loop() {
   Serial.print(temperatura);
   Serial.println("°C");*/
 
+  /*
   // Imprimimos el nivel de luz
   Serial.print("Nivel de luz: ");
   Serial.print(lightLevel);
-  Serial.println(" lx");
+  Serial.println(" lx");*/
+
+  /*
+  // Imprimimos el nivel de humedad del suelo
+  Serial.print("Humedad del suelo: ");
+  Serial.print(soilMoisturePercent);
+  Serial.println("%");*/
 }
