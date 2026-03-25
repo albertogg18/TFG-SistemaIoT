@@ -2,6 +2,11 @@
 #include <Wire.h>
 #include <DHT.h>
 #include <BH1750.h>
+#include <WiFi.h>
+
+// --- Configuración Wi-Fi (Router Virtual de Wokwi) ---
+const char* ssid = "Wokwi-GUEST";
+const char* password = "";
 
 // Configuracion del sensor DHT22 (Temperatura y Humedad )
 #define DHTPIN 15     
@@ -25,7 +30,20 @@ void setup() {
   
   // Pequeña pausa para que la consola arranque limpia
   delay(1000);
-  
+
+  Serial.println("---- Sistema IoT - Lectura de Sensores ----");
+
+  Serial.println("Conectando a Wi-Fi...");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Conectado a Wi-Fi!");
+  Serial.print("Dirección IP: ");
+  Serial.println(WiFi.localIP());
+
   // Arrancamos el sensor DHT22
   dht.begin();
 
