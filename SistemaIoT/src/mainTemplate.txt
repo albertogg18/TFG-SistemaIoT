@@ -1,12 +1,15 @@
 #include <Arduino.h>
-#include <Wire.h>
 #include <DHT.h>
-#include <BH1750.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 // --- Configuración Wi-Fi (Router Virtual de Wokwi) ---
-const char* ssid = "Wokwi-GUEST";
-const char* password = "";
+const char* ssid = "MI_WIFI";
+const char* password = "MI_PASSWORD";
+
+// --- Configuración del servidor al que enviaremos los datos ---
+const char* serverName = "http://<DIRECCION>:3000/api/sensores";
 
 // Configuracion del sensor DHT22 (Temperatura y Humedad )
 #define DHTPIN 15     
@@ -15,13 +18,13 @@ const char* password = "";
 // Definición del PIN para el sensor de humedad del suelo
 #define SOIL_MOISTURE_PIN 34
 
+// Definición del PIN para el sensor de luz
+#define LDR_PIN 32
+
 // ---- Creamos el objeto de los sensores ----
 
 // Creacion sensor de temperatura y humedad DHT22
 DHT dht(DHTPIN, DHTTYPE);
-
-// Creacion sensor de luminosidad BH1750
-BH1750 lightMeter;
 
 // ---- Inicializacion de sensores consola ----
 void setup() {
@@ -47,14 +50,11 @@ void setup() {
   // Arrancamos el sensor DHT22
   dht.begin();
 
-  // Arrancamos el busI2C (Pines 21 y 22 en el ESP32)
-  Wire.begin(21, 22);
-
-  // Arrancamos el sensor BH1750
-  lightMeter.begin();
-
   // Configuramos SOIL_MOISTURE_PIN como entrada
   pinMode(SOIL_MOISTURE_PIN, INPUT);
+
+  // Configuramos LDR_PIN como entrada
+  pinMode(LDR_PIN, INPUT);
 }
 
 // ---- Loop principal ----
@@ -69,13 +69,17 @@ void loop() {
   float temperatura = dht.readTemperature();
 
   // Leemos el nivel de luz
-  float lightLevel = lightMeter.readLightLevel();
+  // Mapeamos el estado del LDR a un valor de luminosidad
+  int ldrEstado = analogRead(LDR_PIN);
+  float luminosidad = map(ldrEstado, 0, 4095, 0, 1000); // Ajustar según calibración
 
   // Leemos el nivel de humedad del suelo
-  int soilMoistureValue = analogRead(SOIL_MOISTURE_PIN);
+  // Mapeamos el valor a un porcentaje (ajustar según calibración)
+  int humedadSueloValor = analogRead(SOIL_MOISTURE_PIN);
+  int humedadSueloPorcentaje = map(humedadSueloValor, 4095, 0, 0, 100);
 
   // ---- Comprobaciones de errores ----
-
+  /*
   // Comprobacion en el sensor DHT22
   if (isnan(humedad) || isnan(temperatura)) {
     Serial.println("¡Error: No se pudo leer el sensor DHT22!");
@@ -83,38 +87,50 @@ void loop() {
   }
 
   // Comprobacion en el sensor BH1750
-  if(lightLevel < 0) {
+  if(luminosidad < 0) {
     Serial.println("¡Error: No se pudo leer el sensor BH1750!");
     return; // Volvemos al inicio del loop para intentar de nuevo
   }
 
   // Comprobacion en el sensor de humedad del suelo
-  if(soilMoistureValue < 0 || soilMoistureValue > 4095) {
+  if(humedadSueloValor < 0 || humedadSueloValor > 4095) {
     Serial.println("¡Error: No se pudo leer el sensor de humedad del suelo!");
     return; // Volvemos al inicio del loop para intentar de nuevo
+  }*/
+
+  // --- Empaquetado de datos en formato JSON ---
+  JsonDocument doc;
+  doc["dispositivo_id"] = "ESP32_0X"; // ID dispositivo
+  
+  JsonObject sensores = doc["sensores"].to<JsonObject>();
+  sensores["temperatura"] = temperatura; // Temperatura en °C
+  sensores["humedad_aire"] = humedad; // Humedad en %
+  sensores["humedad_suelo"] = humedadSueloPorcentaje; // Humedad del suelo en %
+  sensores["luminosidad"] = luminosidad; // Nivel de luz en lux
+  
+  doc["evento_riego"] = false; // Evento de riego (falso por ahora)
+
+  String jsonOutput;
+  serializeJson(doc, jsonOutput);
+
+  // --- Envío de datos al servidor ---
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(serverName);
+    http.addHeader("Content-Type", "application/json");
+
+    int httpResponseCode = http.POST(jsonOutput);
+
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.print("Respuesta del servidor: ");
+      Serial.println(response);
+    } else {
+      Serial.print("Error en la solicitud HTTP: ");
+      Serial.println(httpResponseCode);
+    }
+    http.end();
+  } else {
+    Serial.println("¡Error: No se está conectado a Wi-Fi!");
   }
-  // Mapeamos el valor a un porcentaje (ajustar según calibración)
-  int soilMoisturePercent = map(soilMoistureValue, 4095, 0, 0, 100);
-
-  // ---- Impresion de resultados en consola ----
-
-  /*
-  // Imprimimos los valores de la humedad y la temperatura
-  Serial.print("Humedad: ");
-  Serial.print(humedad);
-  Serial.print("%  |  Temperatura: ");
-  Serial.print(temperatura);
-  Serial.println("°C");*/
-
-  /*
-  // Imprimimos el nivel de luz
-  Serial.print("Nivel de luz: ");
-  Serial.print(lightLevel);
-  Serial.println(" lx");*/
-
-  /*
-  // Imprimimos el nivel de humedad del suelo
-  Serial.print("Humedad del suelo: ");
-  Serial.print(soilMoisturePercent);
-  Serial.println("%");*/
 }
