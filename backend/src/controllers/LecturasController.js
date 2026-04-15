@@ -15,7 +15,7 @@ exports.recibirDatosSensores = async (req, res) => {
 // Controlador para obtener el historial de lecturas
 exports.obtenerHistorialLecturas = async (req, res) => {
     try {
-        const lecturas = (await Lectura.find()).sort({timestamp: -1}).limit(50);
+        const lecturas = await Lectura.find().sort({timestamp: -1}).limit(50);
         res.json(lecturas);
     } catch (error) {
         console.error('Error al obtener el historial de lecturas:', error);
