@@ -11,3 +11,14 @@ exports.recibirDatosSensores = async (req, res) => {
         res.status(500).json({ message: 'Error al guardar la lectura' });
     }
 }
+
+// Controlador para obtener el historial de lecturas
+exports.obtenerHistorialLecturas = async (req, res) => {
+    try {
+        const lecturas = (await Lectura.find()).sort({timestamp: -1}).limit(50);
+        res.json(lecturas);
+    } catch (error) {
+        console.error('Error al obtener el historial de lecturas:', error);
+        res.status(500).json({ message: 'Error al obtener el historial de lecturas' });
+    }
+}
