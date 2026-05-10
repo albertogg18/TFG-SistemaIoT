@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 // Definición del esquema para las lecturas de sensores
 const lecturaSchema = new mongoose.Schema({
@@ -17,4 +17,4 @@ const lecturaSchema = new mongoose.Schema({
     versionKey: false
 })
 
-module.exports = mongoose.model('Lectura', lecturaSchema);
+module.exports = mongoose.model('Lectura', lecturaSchema)
