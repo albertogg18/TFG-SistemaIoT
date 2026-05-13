@@ -59,8 +59,8 @@ void setup() {
 
 // ---- Loop principal ----
 void loop() {
-  // Pausa de 10 segundos entre lecturas
-  delay(10000);
+  // Pausa de 30 minutos entre lecturas
+  delay(1800000);
 
   // ---- Lecturas de sensores ----
 
