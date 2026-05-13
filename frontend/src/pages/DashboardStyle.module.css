@@ -1,0 +1,25 @@
+@reference "../index.css";
+
+.container {
+  @apply py-8;
+}
+
+.headerBox {
+  @apply mb-8 p-8 rounded-2xl bg-gradient-to-r from-emerald-800 to-green-500 shadow-lg shadow-green-900/20;
+}
+
+.title {
+  @apply font-bold text-white mb-2;
+}
+
+.subtitle {
+  @apply text-green-50 font-medium;
+}
+
+.loaderBox {
+  @apply flex justify-center mt-10;
+}
+
+.alert {
+  @apply rounded-xl;
+}
