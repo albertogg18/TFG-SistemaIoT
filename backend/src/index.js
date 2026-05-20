@@ -15,6 +15,7 @@ connectDB()
 
 // Cargar las rutas
 app.use('/api', require('./routes/LecturasRoutes'))
+app.use('/api/riego', require('./routes/RiegoRoutes'))
 
 // Iniciar el servidor
 const PORT = process.env.PORT || 3000
