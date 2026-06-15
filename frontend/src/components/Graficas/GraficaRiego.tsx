@@ -1,57 +1,56 @@
-// src/components/Graficas/GraficaRiegoMensual.tsx
-import React, { useMemo } from 'react';
-import { Lectura } from '../../model/Lecturas';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Box, Typography } from '@mui/material';
-import styles from './GraficaRiegoStyle.module.css';
+import { useMemo } from 'react'
+import { Lectura } from '../../model/Lecturas'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Box, Typography } from '@mui/material'
+import styles from './GraficaRiegoStyle.module.css'
 
 export const GraficaRiegoMensual = ({ lecturas }: { lecturas: Lectura[] }) => {
 
   const { datosGrafico, diasConRiego, totalRiegos } = useMemo(() => {
-    const mapaDias = new Map<string, { diaMes: string; vecesRegado: number }>();
+    const mapaDias = new Map<string, { diaMes: string; vecesRegado: number }>()
 
     for (let i = 29; i >= 0; i--) {
-      const fecha = new Date();
-      fecha.setDate(fecha.getDate() - i);
+      const fecha = new Date()
+      fecha.setDate(fecha.getDate() - i)
 
-      const year = fecha.getFullYear();
-      const month = (fecha.getMonth() + 1).toString().padStart(2, '0');
-      const day = fecha.getDate().toString().padStart(2, '0');
-      const claveUnica = `${year}-${month}-${day}`; // Formato YYYY-MM-DD para mapear
+      const year = fecha.getFullYear()
+      const month = (fecha.getMonth() + 1).toString().padStart(2, '0')
+      const day = fecha.getDate().toString().padStart(2, '0')
+      const claveUnica = `${year}-${month}-${day}`
 
-      const diaMes = `${day}/${month}`; // Formato visual DD/MM para el eje X
-      mapaDias.set(claveUnica, { diaMes, vecesRegado: 0 });
+      const diaMes = `${day}/${month}`
+      mapaDias.set(claveUnica, { diaMes, vecesRegado: 0 })
     }
 
-    let cuentaTotalRiegos = 0;
-    let cuentaDiasConRiego = 0;
+    let cuentaTotalRiegos = 0
+    let cuentaDiasConRiego = 0
 
     lecturas.forEach((l) => {
-      const fechaLectura = new Date(l.timestamp);
-      const year = fechaLectura.getFullYear();
-      const month = (fechaLectura.getMonth() + 1).toString().padStart(2, '0');
-      const day = fechaLectura.getDate().toString().padStart(2, '0');
-      const claveUnica = `${year}-${month}-${day}`;
+      const fechaLectura = new Date(l.timestamp)
+      const year = fechaLectura.getFullYear()
+      const month = (fechaLectura.getMonth() + 1).toString().padStart(2, '0')
+      const day = fechaLectura.getDate().toString().padStart(2, '0')
+      const claveUnica = `${year}-${month}-${day}`
 
       if (mapaDias.has(claveUnica) && l.evento_riego) {
-        mapaDias.get(claveUnica)!.vecesRegado += 1;
+        mapaDias.get(claveUnica)!.vecesRegado += 1
       }
-    });
+    })
 
     const resultadoArray = Array.from(mapaDias.values()).map(d => {
       if (d.vecesRegado > 0) {
-        cuentaTotalRiegos += d.vecesRegado;
-        cuentaDiasConRiego += 1;
+        cuentaTotalRiegos += d.vecesRegado
+        cuentaDiasConRiego += 1
       }
-      return d;
-    });
+      return d
+    })
 
     return {
       datosGrafico: resultadoArray,
       diasConRiego: cuentaDiasConRiego,
       totalRiegos: cuentaTotalRiegos
-    };
-  }, [lecturas]);
+    }
+  }, [lecturas])
 
   return (
     <Box className={styles.card}>
@@ -77,7 +76,7 @@ export const GraficaRiegoMensual = ({ lecturas }: { lecturas: Lectura[] }) => {
               domain={[0, 'auto']}
             />
             <Tooltip
-              cursor={{ fill: '#f0f9ff' }} // Resalta la columna al pasar el ratón
+              cursor={{ fill: '#f0f9ff' }}
               contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               formatter={(value) => [`${value} veces`, 'Riegos registrados']}
               labelFormatter={(label) => `Día: ${label}`}
@@ -109,5 +108,5 @@ export const GraficaRiegoMensual = ({ lecturas }: { lecturas: Lectura[] }) => {
         </Box>
       </Box>
     </Box>
-  );
-};
+  )
+}

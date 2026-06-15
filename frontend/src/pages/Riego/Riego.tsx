@@ -1,52 +1,52 @@
-import React, { useState } from 'react';
-import { Box, Typography, CircularProgress } from '@mui/material';
-import { OrigenRiego } from '../../model/Lecturas';
-import { activarRiegoManual, actualizarConfiguracion } from '../../services/riegoService';
+import React, { useState } from 'react'
+import { Box, Typography, CircularProgress } from '@mui/material'
+import { OrigenRiego } from '../../model/Lecturas'
+import { activarRiegoManual, actualizarConfiguracion } from '../../services/riegoService'
 import { ConfiguracionSistema } from '../../model/Configuracion'
 
 // Iconos
-import TouchAppIcon from '@mui/icons-material/TouchApp';
-import TuneIcon from '@mui/icons-material/Tune';
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import WaterIcon from '@mui/icons-material/Water';
-import SettingsIcon from '@mui/icons-material/Settings';
+import TouchAppIcon from '@mui/icons-material/TouchApp'
+import TuneIcon from '@mui/icons-material/Tune'
+import PsychologyIcon from '@mui/icons-material/Psychology'
+import WaterIcon from '@mui/icons-material/Water'
+import SettingsIcon from '@mui/icons-material/Settings'
 
-import styles from './RiegoStyle.module.css';
+import styles from './RiegoStyle.module.css'
 
 export const Riego = () => {
-  const [modo, setModo] = useState<OrigenRiego>(OrigenRiego.MANUAL);
-  const [enviandoOrden, setEnviandoOrden] = useState<boolean>(false);
+  const [modo, setModo] = useState<OrigenRiego>(OrigenRiego.MANUAL)
+  const [enviandoOrden, setEnviandoOrden] = useState<boolean>(false)
 
   // --- Estado para Configuración General ---
-  const [intervaloMuestreo, setIntervaloMuestreo] = useState<number>(30); // 30 minutos por defecto
+  const [intervaloMuestreo, setIntervaloMuestreo] = useState<number>(30) // 30 minutos por defecto
 
   // --- Estados para el formulario de reglas ---
-  const [humedadMinima, setHumedadMinima] = useState<number>(40);
-  const [temperaturaMaxima, setTemperaturaMaxima] = useState<number>(40);
-  const [duracionRiego, setDuracionRiego] = useState<number>(5);
+  const [humedadMinima, setHumedadMinima] = useState<number>(40)
+  const [temperaturaMaxima, setTemperaturaMaxima] = useState<number>(40)
+  const [duracionRiego, setDuracionRiego] = useState<number>(5)
 
   // Manejador del Intervalo de Muestreo
   const manejarGuardarIntervalo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEnviandoOrden(true); 
+    e.preventDefault()
+    setEnviandoOrden(true) 
 
     const payload: ConfiguracionSistema = { 
       intervaloMuestreo: intervaloMuestreo 
-    };
+    }
 
-    const exito = await actualizarConfiguracion(payload);
+    const exito = await actualizarConfiguracion(payload)
     
     if (exito) {
-      alert(`Intervalo de muestreo actualizado a: ${intervaloMuestreo} minutos.`);
+      alert(`Intervalo de muestreo actualizado a: ${intervaloMuestreo} minutos.`)
     } else {
-      alert(`Error al guardar el intervalo en el servidor.`);
+      alert(`Error al guardar el intervalo en el servidor.`)
     }
-    setEnviandoOrden(false);
-  };
+    setEnviandoOrden(false)
+  }
 
   const manejarGuardarReglas = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEnviandoOrden(true);
+    e.preventDefault()
+    setEnviandoOrden(true)
 
     const payload: ConfiguracionSistema = {
       modo: OrigenRiego.REGLAS,
@@ -55,29 +55,29 @@ export const Riego = () => {
         temperaturaMaxima: temperaturaMaxima,
         duracionRiego: duracionRiego
       }
-    };
+    }
 
-    const exito = await actualizarConfiguracion(payload);
+    const exito = await actualizarConfiguracion(payload)
     
     if (exito) {
-      alert(`Reglas guardadas correctamente en la nube.`);
+      alert(`Reglas guardadas correctamente en la nube.`)
     } else {
-      alert(`Error al guardar las reglas.`);
+      alert(`Error al guardar las reglas.`)
     }
-    setEnviandoOrden(false);
-  };
+    setEnviandoOrden(false)
+  }
 
   const manejarRiegoManual = async () => {
     try {
-      setEnviandoOrden(true);
-      await activarRiegoManual();
-      alert('¡Orden enviada correctamente! La bomba se activará en breves segundos.');
+      setEnviandoOrden(true)
+      await activarRiegoManual()
+      alert('¡Orden enviada correctamente! La bomba se activará en breves segundos.')
     } catch (error) {
-      alert('Error de comunicación con el servidor. No se pudo activar el riego.');
+      alert('Error de comunicación con el servidor. No se pudo activar el riego.')
     } finally {
-      setEnviandoOrden(false);
+      setEnviandoOrden(false)
     }
-  };
+  }
 
   return (
     <Box>
@@ -267,5 +267,5 @@ export const Riego = () => {
         )}
       </Box>
     </Box>
-  );
-};
+  )
+}

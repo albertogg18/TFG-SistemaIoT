@@ -25,10 +25,10 @@ export const actualizarConfiguracion = async (datosConfiguracion: ConfiguracionS
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(datosConfiguracion)
-    });
-    return respuesta.ok;
+    })
+    return respuesta.ok
   } catch (error) {
-    console.error("Error al actualizar configuración:", error);
-    return false;
+    console.error("Error al actualizar configuración:", error)
+    return false
   }
 }

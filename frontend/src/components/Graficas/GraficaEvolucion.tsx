@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { Lectura } from '../../model/Lecturas';
+import React, { useMemo, useState } from 'react'
+import { Lectura } from '../../model/Lecturas'
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
-} from 'recharts';
-import { Box, Typography, FormGroup, FormControlLabel, Checkbox } from '@mui/material';
-import styles from './GraficaEvolucionStyle.module.css';
+} from 'recharts'
+import { Box, Typography, FormGroup, FormControlLabel, Checkbox } from '@mui/material'
+import styles from './GraficaEvolucionStyle.module.css'
 
 export const GraficaEvolucion = ({ lecturas }: { lecturas: Lectura[] }) => {
   const [visibilidad, setVisibilidad] = useState({
@@ -12,39 +12,39 @@ export const GraficaEvolucion = ({ lecturas }: { lecturas: Lectura[] }) => {
     humedadAire: true,
     humedadSuelo: true,
     luminosidad: false, 
-  });
+  })
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setVisibilidad({
       ...visibilidad,
       [event.target.name]: event.target.checked,
-    });
-  };
+    })
+  }
 
   const datosProcesados = useMemo(() => {
-    if (!lecturas || lecturas.length === 0) return [];
+    if (!lecturas || lecturas.length === 0) return []
 
-    const fechaLimite = new Date();
-    fechaLimite.setDate(fechaLimite.getDate() - 30);
+    const fechaLimite = new Date()
+    fechaLimite.setDate(fechaLimite.getDate() - 30)
 
     return lecturas
       .filter(l => new Date(l.timestamp) >= fechaLimite)
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
       .map(l => {
-        const fecha = new Date(l.timestamp);
-        const diaMes = `${fecha.getDate().toString().padStart(2, '0')}/${(fecha.getMonth() + 1).toString().padStart(2, '0')}`;
-        const hora = `${fecha.getHours().toString().padStart(2, '0')}:${fecha.getMinutes().toString().padStart(2, '0')}`;
+        const fecha = new Date(l.timestamp)
+        const diaMes = `${fecha.getDate().toString().padStart(2, '0')}/${(fecha.getMonth() + 1).toString().padStart(2, '0')}`
+        const hora = `${fecha.getHours().toString().padStart(2, '0')}:${fecha.getMinutes().toString().padStart(2, '0')}`
         
         return {
-          diaMes, // Dato corto para el eje X
-          fechaHoraCompleta: `${diaMes} ${hora}`, // Dato largo para el Tooltip
+          diaMes,
+          fechaHoraCompleta: `${diaMes} ${hora}`,
           temperatura: l.sensores.temperatura,
           humedadAire: l.sensores.humedad_aire,
           humedadSuelo: l.sensores.humedad_suelo,
           luminosidad: l.sensores.luminosidad
-        };
-      });
-  }, [lecturas]);
+        }
+      })
+  }, [lecturas])
 
   return (
     <Box className={styles.card}>
@@ -98,10 +98,9 @@ export const GraficaEvolucion = ({ lecturas }: { lecturas: Lectura[] }) => {
               <Tooltip 
                 labelFormatter={(label, payload) => {
                   if (payload && payload.length > 0) {
-                    // Rescatamos la fecha y hora completas de los datos invisibles
-                    return payload[0].payload.fechaHoraCompleta;
+                    return payload[0].payload.fechaHoraCompleta
                   }
-                  return label;
+                  return label
                 }}
                 contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
@@ -128,5 +127,5 @@ export const GraficaEvolucion = ({ lecturas }: { lecturas: Lectura[] }) => {
         )}
       </Box>
     </Box>
-  );
-};
+  )
+}
