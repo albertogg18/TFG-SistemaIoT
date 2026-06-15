@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react"
-import { Lectura } from "../model/Lecturas"
+import { Lectura } from "../../model/Lecturas"
 import {
   TableContainer,
   Table,
@@ -12,7 +12,7 @@ import {
   TablePagination
 } from "@mui/material"
 
-import styles from './TablaLecturaStyle.module.css'
+import styles from './TablaLecturasStyle.module.css'
 
 type Order = 'asc' | 'desc'
 type OrderBy = 'timestamp' | 'temperatura' | 'humedad_aire' | 'humedad_suelo' | 'luminosidad' | 'evento_riego' | 'origen_riego'
@@ -34,7 +34,7 @@ export const TablaLecturas = ({
       case 'humedad_suelo': return lectura.sensores.humedad_suelo
       case 'luminosidad': return lectura.sensores.luminosidad
       case 'timestamp': return new Date(lectura.timestamp).getTime()
-      case 'evento_riego': return lectura.evento_riego ? 0 : 1
+      case 'evento_riego': return lectura.evento_riego ? 1 : 0
       case 'origen_riego': return lectura.origen_riego || ''
     }
   }
@@ -42,8 +42,10 @@ export const TablaLecturas = ({
   const lecturasOrdenadas = useMemo(() => {
     const arrayCopia = [...lecturas]
     return arrayCopia.sort((a, b) => {
+      console.log("Valor de evento_riego antes de ordenar: ", a.evento_riego, b.evento_riego)
       const valorA = extraerValorParaOrdenar(a, orderBy)
       const valorB = extraerValorParaOrdenar(b, orderBy)
+      console.log("Valor de evento_riego despues de ordenar: ", valorA, valorB)
       if (valorB < valorA) return order === 'asc' ? 1 : -1
       if (valorB > valorA) return order === 'asc' ? -1 : 1
       return 0

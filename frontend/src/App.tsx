@@ -1,6 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
-import { Dashboard } from './pages/Dashboard'
+import { Historial } from './pages/Historial/Historial'
+import { Layout } from './components/Layout/Layout'
+import { Graficas } from './pages/Graficas/Graficas'
+import { Riego } from './pages/Riego/Riego'
 
 const theme = createTheme({
   palette: {
@@ -35,7 +38,12 @@ const App = () => {
       <CssBaseline /> 
       <Router>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route element={<Layout />}>
+            <Route path="/" element={<Navigate to="/historial" replace />} />
+            <Route path="/historial" element={<Historial />} />
+            <Route path="/graficas" element={<Graficas />} />
+            <Route path="/riego" element={<Riego />} />
+          </Route>
         </Routes>
       </Router>
     </ThemeProvider>

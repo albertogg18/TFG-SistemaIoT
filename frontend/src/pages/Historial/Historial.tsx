@@ -1,13 +1,13 @@
 import { Container, Typography, CircularProgress, Alert, Box } from '@mui/material'
 
-import { TablaLecturas } from "../components/TablaLecturas"
-import { useLecturas } from "../hooks/useLecturas"
+import { TablaLecturas } from "../../components/TablaLecturas/TablaLecturas"
+import { useLecturas } from "../../hooks/useLecturas"
 
-import styles from "./DashboardStyle.module.css"
+import styles from "./HistorialStyle.module.css"
 
-export const Dashboard = () => {
+export const Historial = () => {
   const { lecturas, cargando, error } = useLecturas({})
-
+  
   return (
     <Container maxWidth="lg" className={styles.container}>
       

@@ -16,18 +16,32 @@ export const useLecturas = ({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchLecturas = async () => {
+    const fetchLecturas = async (esPrimeraCarga: boolean) => {
       try {
-        setCargando(true)
+        if (esPrimeraCarga) {
+          setCargando(true)
+        }
+        
         const datos = await getHistorialLecturas()
-
+        
         setLecturas(datos)
-        setCargando(false)
+        setError(null)
       } catch (err) {
         setError((err as Error).message)
+      } finally {
+        if (esPrimeraCarga) {
+          setCargando(false)
+        }
       }
     }
-    fetchLecturas()
+
+    fetchLecturas(true)
+
+    const intervalo = setInterval(() => {
+      fetchLecturas(false)
+    }, 15000)
+
+    return () => clearInterval(intervalo)
   }, [])
 
   return { lecturas, cargando, error }

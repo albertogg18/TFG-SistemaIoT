@@ -1,0 +1,21 @@
+@reference "../../index.css";
+
+.headerBox {
+  @apply mb-8 p-8 rounded-2xl bg-gradient-to-r from-emerald-800 to-green-500 shadow-lg shadow-green-900/20;
+}
+
+.title {
+  @apply font-bold text-white mb-2;
+}
+
+.subtitle {
+  @apply text-green-50 font-medium;
+}
+
+.placeholderBox {
+  @apply bg-white p-10 rounded-2xl border border-green-100 shadow-sm flex justify-center items-center h-64;
+}
+
+.placeholderText {
+  @apply text-gray-400 font-medium text-lg;
+}

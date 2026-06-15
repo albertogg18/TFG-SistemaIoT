@@ -1,0 +1,103 @@
+/* src/pages/Riego/RiegoStyle.module.css */
+@reference "../../index.css";
+
+.headerBox {
+  @apply mb-8 p-8 rounded-2xl bg-gradient-to-r from-emerald-800 to-green-500 shadow-lg shadow-green-900/20;
+}
+
+.title {
+  @apply font-bold text-white mb-2;
+}
+
+.subtitle {
+  @apply text-green-50 font-medium;
+}
+
+/* Rejilla de selección para las 3 tarjetas de modo */
+.gridModos {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6 mb-8;
+}
+
+.cardModo {
+  @apply bg-white p-6 rounded-2xl border border-gray-200 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:border-emerald-200 flex flex-col items-center text-center select-none;
+}
+
+.cardModoActive {
+  @apply bg-white p-6 rounded-2xl border-2 border-emerald-500 shadow-md shadow-emerald-900/5 cursor-pointer transition-all duration-200 flex flex-col items-center text-center select-none;
+}
+
+.iconWrapper {
+  @apply p-4 rounded-xl mb-4 bg-gray-50 text-gray-400 transition-colors;
+}
+
+.iconWrapperActive {
+  @apply p-4 rounded-xl mb-4 bg-emerald-50 text-emerald-600 transition-colors;
+}
+
+.modoTitle {
+  @apply font-bold text-gray-800 text-lg mb-2;
+}
+
+.modoTitleActive {
+  @apply font-bold text-emerald-900 text-lg mb-2;
+}
+
+.modoDesc {
+  @apply text-sm text-gray-500 leading-relaxed;
+}
+
+/* Panel dinámico inferior que cambia según el modo */
+.controlPanel {
+  @apply bg-white p-8 rounded-2xl border border-green-100 shadow-sm transition-all duration-300;
+}
+
+.panelTitle {
+  @apply font-bold text-emerald-900 text-xl mb-3 flex items-center gap-2;
+}
+
+.panelDesc {
+  @apply text-sm text-gray-500 mb-6;
+}
+
+/* Estilos de controles específicos */
+.btnManual {
+  @apply bg-sky-500 hover:bg-sky-600 text-white font-bold px-8 py-4 rounded-xl shadow-md shadow-sky-900/10 transition-all duration-200 active:scale-95 flex items-center gap-2 mx-auto mt-4;
+}
+
+.configGrid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-xl;
+}
+
+.inputGroup {
+  @apply flex flex-col;
+}
+
+.label {
+  @apply text-sm font-semibold text-gray-700 mb-1;
+}
+
+.inputField {
+  @apply px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-colors text-gray-700 font-medium;
+}
+
+.btnGuardar {
+  @apply mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors shadow-sm cursor-pointer;
+}
+
+.iaBadge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200 animate-pulse mt-2;
+}
+
+/* Estilos para el nuevo panel de configuración general */
+.generalConfigPanel {
+  @apply bg-white p-6 rounded-2xl border-l-4 border-l-emerald-500 shadow-sm mb-8;
+}
+
+.btnSecundario {
+  @apply h-[46px] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold px-6 rounded-xl transition-colors shadow-sm cursor-pointer border border-emerald-200;
+}
+
+/* Modificamos el configGrid para que soporte 4 columnas en pantallas grandes */
+.configGrid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full;
+}

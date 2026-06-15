@@ -1,0 +1,31 @@
+/* src/components/Graficas/GraficaRiegoMensualStyle.module.css */
+@reference "../../index.css";
+
+.card {
+  @apply bg-white p-6 rounded-2xl border border-green-100 shadow-sm mb-6 w-full;
+}
+
+.title {
+  @apply text-emerald-900 font-bold text-xl mb-6;
+}
+
+.chartContainer {
+  @apply w-full h-[300px] mt-4;
+}
+
+/* Panel de estadísticas rápidas inferiores */
+.summaryBox {
+  @apply mt-6 p-4 bg-sky-50/50 rounded-xl border border-sky-100 flex flex-col sm:flex-row justify-around items-center gap-4 text-center;
+}
+
+.summaryItem {
+  @apply flex flex-col;
+}
+
+.summaryLabel {
+  @apply text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1;
+}
+
+.summaryValue {
+  @apply text-lg font-bold text-sky-800;
+}
