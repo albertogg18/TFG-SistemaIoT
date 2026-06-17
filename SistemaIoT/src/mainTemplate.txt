@@ -5,15 +5,17 @@
 #include <ArduinoJson.h>
 
 // --- Configuración Wi-Fi (Router Virtual de Wokwi) ---
-const char* ssid = "MI_WIFI";
-const char* password = "MI_PASSWORD";
+const char* ssid = "";
+const char* password = "";
 
 // --- Configuración del servidor al que enviaremos los datos ---
-const char* serverName = "http://<DIRECCION>:3000/api/sensores";
+const char* serverSensores = "https://backend-tfg-mvvy.onrender.com/api/sensores";
+const char* serverRiegoEstado = "https://backend-tfg-mvvy.onrender.com/api/riego/estado";
 
 // Configuracion del sensor DHT22 (Temperatura y Humedad )
 #define DHTPIN 15     
 #define DHTTYPE DHT22
+#define DHT_PWR_PIN 5
 
 // Definición del PIN para el sensor de humedad del suelo
 #define SOIL_MOISTURE_PIN 34
@@ -21,116 +23,259 @@ const char* serverName = "http://<DIRECCION>:3000/api/sensores";
 // Definición del PIN para el sensor de luz
 #define LDR_PIN 32
 
-// ---- Creamos el objeto de los sensores ----
+// Definición del PIN para el relé
+#define RELAY_PIN 4
 
-// Creacion sensor de temperatura y humedad DHT22
+// --- Temporizadores Multitarea (millis) ---
+unsigned long tiempoUltimaLectura = 0;
+unsigned long intervaloLecturas = 1800000; // 30 minutos por defecto (en milisegundos)
+
+unsigned long tiempoUltimoPolling = 0;
+const unsigned long intervaloPolling = 3000; // Consultar estado del servidor cada 3 segundos
+
+unsigned long tiempoUltimaEvaluacion = 0;
+const unsigned long intervaloEvaluacion = 60000; // Evaluar si se cumplen las reglas cada 1 minuto
+
+unsigned long tiempoUltimoRiego = 0;
+const unsigned long cooldownRiegoMs = 43200000;
+
+// --- Variables de Estado y Reglas ---
+String modoActual = "manual";
+int reglaHumedadMinima = 40;     // Límite de humedad por defecto (%)
+int reglaTemperaturaMaxima = 40; // Límite de temperatura por defecto (°C)
+int tiempoDeRiegoMs = 5000;      // Duración del riego por defecto (ms)
+const int tiempoDeRiegoManual = 5000; // Duración del riego manual por defecto (ms)
+
+// ---- Creamos el objeto de los sensores ----
 DHT dht(DHTPIN, DHTTYPE);
 
-// ---- Inicializacion de sensores consola ----
-void setup() {
-  // Iniciamos la consola serie a 115200 baudios
-  Serial.begin(115200);
+// ---- Función auxiliar para leer sensores y enviar al backend ----
+void enviarDatos(bool evento_riego, String origen_riego) {
+  Serial.println("Realizando lectura de sensores para enviar a BD...");
   
-  // Pequeña pausa para que la consola arranque limpia
-  delay(1000);
-
-  Serial.println("---- Sistema IoT - Lectura de Sensores ----");
-
-  Serial.println("Conectando a Wi-Fi...");
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("Conectado a Wi-Fi!");
-  Serial.print("Dirección IP: ");
-  Serial.println(WiFi.localIP());
-
-  // Arrancamos el sensor DHT22
-  dht.begin();
-
-  // Configuramos SOIL_MOISTURE_PIN como entrada
-  pinMode(SOIL_MOISTURE_PIN, INPUT);
-
-  // Configuramos LDR_PIN como entrada
-  pinMode(LDR_PIN, INPUT);
-}
-
-// ---- Loop principal ----
-void loop() {
-  // Pausa de 30 minutos entre lecturas
-  delay(1800000);
-
-  // ---- Lecturas de sensores ----
-
-  // Leemos la humedad y la temperatura
+  // Lecturas
   float humedad = dht.readHumidity();
   float temperatura = dht.readTemperature();
 
-  // Leemos el nivel de luz
-  // Mapeamos el estado del LDR a un valor de luminosidad
+  if (isnan(humedad) || isnan(temperatura)) {
+    Serial.println("ERROR: DHT22 bloqueado. Iniciando HARD RESET eléctrico...");
+    
+    digitalWrite(DHT_PWR_PIN, LOW); 
+    delay(1000); 
+    digitalWrite(DHT_PWR_PIN, HIGH); 
+    delay(2000); 
+    
+    dht.begin();
+    humedad = dht.readHumidity();
+    temperatura = dht.readTemperature();
+    
+    Serial.println("Hard Reset completado. Nueva lectura forzada.");
+  }
+  
   int ldrEstado = analogRead(LDR_PIN);
-  float luminosidad = map(ldrEstado, 0, 4095, 0, 1000); // Ajustar según calibración
-
-  // Leemos el nivel de humedad del suelo
-  // Mapeamos el valor a un porcentaje (ajustar según calibración)
+  float luminosidad = map(ldrEstado, 0, 4095, 0, 1000); 
+  
   int humedadSueloValor = analogRead(SOIL_MOISTURE_PIN);
   int humedadSueloPorcentaje = map(humedadSueloValor, 4095, 0, 0, 100);
 
-  // ---- Comprobaciones de errores ----
-  /*
-  // Comprobacion en el sensor DHT22
-  if (isnan(humedad) || isnan(temperatura)) {
-    Serial.println("¡Error: No se pudo leer el sensor DHT22!");
-    return; // Volvemos al inicio del loop para intentar de nuevo
-  }
+  // Evitar valores fuera de rango (0-100)
+  if(humedadSueloPorcentaje < 0) humedadSueloPorcentaje = 0;
+  if(humedadSueloPorcentaje > 100) humedadSueloPorcentaje = 100;
 
-  // Comprobacion en el sensor BH1750
-  if(luminosidad < 0) {
-    Serial.println("¡Error: No se pudo leer el sensor BH1750!");
-    return; // Volvemos al inicio del loop para intentar de nuevo
-  }
-
-  // Comprobacion en el sensor de humedad del suelo
-  if(humedadSueloValor < 0 || humedadSueloValor > 4095) {
-    Serial.println("¡Error: No se pudo leer el sensor de humedad del suelo!");
-    return; // Volvemos al inicio del loop para intentar de nuevo
-  }*/
-
-  // --- Empaquetado de datos en formato JSON ---
+  // Empaquetado JSON
   JsonDocument doc;
-  doc["dispositivo_id"] = "ESP32_0X"; // ID dispositivo
+  doc["dispositivo_id"] = "ESP32_01"; 
   
   JsonObject sensores = doc["sensores"].to<JsonObject>();
-  sensores["temperatura"] = temperatura; // Temperatura en °C
-  sensores["humedad_aire"] = humedad; // Humedad en %
-  sensores["humedad_suelo"] = humedadSueloPorcentaje; // Humedad del suelo en %
-  sensores["luminosidad"] = luminosidad; // Nivel de luz en lux
+  sensores["temperatura"] = temperatura; 
+  sensores["humedad_aire"] = humedad; 
+  sensores["humedad_suelo"] = humedadSueloPorcentaje; 
+  sensores["luminosidad"] = luminosidad; 
   
-  doc["evento_riego"] = false; // Evento de riego (falso por ahora)
+  doc["evento_riego"] = evento_riego; 
+  if (evento_riego) {
+    doc["origen_riego"] = origen_riego;
+  } else {
+    doc["origen_riego"] = nullptr;
+  }
 
   String jsonOutput;
   serializeJson(doc, jsonOutput);
 
-  // --- Envío de datos al servidor ---
+  // Envío HTTP POST
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin(serverName);
+    http.begin(serverSensores);
     http.addHeader("Content-Type", "application/json");
 
     int httpResponseCode = http.POST(jsonOutput);
 
     if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.print("Respuesta del servidor: ");
-      Serial.println(response);
+      Serial.print("Datos guardados en BD exitosamente. Codigo HTTP: ");
+      Serial.println(httpResponseCode);
     } else {
-      Serial.print("Error en la solicitud HTTP: ");
+      Serial.print("Error en el POST de datos: ");
       Serial.println(httpResponseCode);
     }
     http.end();
   } else {
-    Serial.println("¡Error: No se está conectado a Wi-Fi!");
+    Serial.println("Error: Sin conexión Wi-Fi");
+  }
+}
+
+// ---- Inicialización ----
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  Serial.println("---- Sistema IoT ----");
+
+  pinMode(SOIL_MOISTURE_PIN, INPUT);
+  pinMode(LDR_PIN, INPUT);
+  
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
+
+  Serial.print("Conectando a Wi-Fi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConectado a Wi-Fi!");
+  Serial.print("IP Asignada: ");
+  Serial.println(WiFi.localIP());
+
+  pinMode(DHT_PWR_PIN, OUTPUT);
+  digitalWrite(DHT_PWR_PIN, HIGH);
+  delay(2000);
+  
+  dht.begin();
+  
+  enviarDatos(false, "");
+}
+
+// ---- Loop principal ----
+void loop() {
+  unsigned long tiempoActual = millis();
+
+  // ------------------------------------------------------------------
+  // TAREA 1: Consultar estado y configuración (Polling)
+  // ------------------------------------------------------------------
+  bool ordenNubePendiente = false;
+  String origenOrdenNube = "";
+
+  if (tiempoActual - tiempoUltimoPolling >= intervaloPolling) {
+    tiempoUltimoPolling = tiempoActual;
+
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(serverRiegoEstado);
+      int httpCode = http.GET();
+
+      if (httpCode > 0) {
+        String payload = http.getString();
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, payload);
+
+        if (!error) {
+          if (doc["modo"].is<String>()) modoActual = doc["modo"].as<String>();
+          
+          if (doc["intervalo_minutos"].is<int>()) {
+            intervaloLecturas = doc["intervalo_minutos"].as<unsigned long>() * 60000; 
+          }
+
+          if (doc["reglas"].is<JsonObject>()) {
+            JsonObject reglas = doc["reglas"];
+            if (reglas["humedad_minima"].is<int>()) reglaHumedadMinima = reglas["humedad_minima"].as<int>();
+            if (reglas["temp_maxima"].is<int>()) reglaTemperaturaMaxima = reglas["temp_maxima"].as<int>();
+            if (reglas["duracion_segundos"].is<int>()) tiempoDeRiegoMs = reglas["duracion_segundos"].as<int>() * 1000;
+          }
+
+          if (doc["regar"].is<bool>() && doc["regar"].as<bool>() == true) {
+            ordenNubePendiente = true;
+            if (doc["origen_orden"].is<String>()) {
+              origenOrdenNube = doc["origen_orden"].as<String>();
+            } else {
+              origenOrdenNube = "manual";
+            }
+          }
+        }
+      }
+      http.end(); 
+    }
+  }
+
+  if (ordenNubePendiente) {
+    Serial.printf("💧 Orden de riego desde la nube. Origen: %s\n", origenOrdenNube.c_str());
+    Serial.println("Tomando lectura limpia de sensores...");
+    
+    enviarDatos(true, origenOrdenNube);
+
+    // Activamos la bomba
+    digitalWrite(RELAY_PIN, HIGH);
+    delay(tiempoDeRiegoMs);
+    digitalWrite(RELAY_PIN, LOW);
+    Serial.println("Riego finalizado.");
+
+    // Reseteamos los temporizadores
+    tiempoUltimaLectura = millis(); 
+    tiempoUltimaEvaluacion = millis();
+    tiempoActual = millis();
+  }
+
+  // ------------------------------------------------------------------
+  // TAREA 2: Evaluar las reglas de riego de forma autónoma
+  // ------------------------------------------------------------------
+  if (modoActual == "reglas" && (tiempoActual - tiempoUltimaEvaluacion >= intervaloEvaluacion)) {
+    tiempoUltimaEvaluacion = tiempoActual;
+    
+    // Lectura de Humedad del suelo
+    int humedadSueloValor = analogRead(SOIL_MOISTURE_PIN);
+    int humedadSueloPorcentaje = map(humedadSueloValor, 4095, 0, 0, 100);
+    if(humedadSueloPorcentaje < 0) humedadSueloPorcentaje = 0;
+    if(humedadSueloPorcentaje > 100) humedadSueloPorcentaje = 100;
+
+    // Lectura de Temperatura
+    float temperaturaActual = dht.readTemperature();
+
+    Serial.printf("Modo Reglas: Hum. %d%% (Lim: %d%%) | Temp. %.1f°C (Lim: %d°C)\n", 
+                   humedadSueloPorcentaje, reglaHumedadMinima, temperaturaActual, reglaTemperaturaMaxima);
+
+    // Condiciones lógicas
+    bool regarPorHumedad = (humedadSueloPorcentaje <= reglaHumedadMinima);
+    // Verificamos que el sensor no esté colgado (!isnan) para evitar riegos fantasma
+    bool regarPorTemperatura = (!isnan(temperaturaActual) && temperaturaActual >= reglaTemperaturaMaxima);
+
+    if (regarPorHumedad || regarPorTemperatura) {
+      
+      if (tiempoActual - tiempoUltimoRiego >= cooldownRiegoMs || tiempoUltimoRiego == 0) {
+        
+        if (regarPorHumedad) Serial.println("Riego autónomo: Humedad por debajo del umbral.");
+        if (regarPorTemperatura) Serial.println("Riego autónomo: Temperatura por encima del umbral.");
+        
+        enviarDatos(true, "reglas");
+
+        digitalWrite(RELAY_PIN, HIGH);
+        delay(tiempoDeRiegoMs);
+        digitalWrite(RELAY_PIN, LOW);
+        Serial.println("Riego automático por reglas finalizado.");
+
+        // Guardamos el momento exacto en el que regamos
+        tiempoUltimoRiego = millis(); 
+        tiempoUltimaLectura = millis(); 
+        tiempoActual = millis();
+      } else {
+        Serial.println("Condiciones de riego cumplidas, pero bloqueado por COOLDOWN de seguridad.");
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // TAREA 3: Envío periódico normal a BD
+  // ------------------------------------------------------------------
+  if (tiempoActual - tiempoUltimaLectura >= intervaloLecturas) {
+    tiempoUltimaLectura = tiempoActual;
+    enviarDatos(false, "");
   }
 }
