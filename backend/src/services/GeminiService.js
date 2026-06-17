@@ -1,12 +1,12 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenerativeAI } = require("@google/generative-ai")
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 exports.evaluarRiego = async (sensores, fechaUltimoRiego) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
 
-    const fechaActual = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
+    const fechaActual = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })
 
     const prompt = `
       Actúa como un ingeniero agrónomo experto encargado de decidir cuándo regar una plantación.
@@ -33,24 +33,24 @@ exports.evaluarRiego = async (sensores, fechaUltimoRiego) => {
         "justificacion": "Explicación técnica de 1 o 2 líneas justificando tu decisión basándote en los datos."
       }
       No incluyas texto adicional ni bloques markdown.
-    `;
+    `
 
-    console.log("🧠 Consultando a Gemini con contexto temporal y botánico...");
-    const result = await model.generateContent(prompt);
-    let textoRespuesta = result.response.text().trim();
+    console.log("🧠 Consultando a Gemini con contexto temporal y botánico...")
+    const result = await model.generateContent(prompt)
+    let textoRespuesta = result.response.text().trim()
 
-    textoRespuesta = textoRespuesta.replace(/```json/g, '').replace(/```/g, '').trim();
+    textoRespuesta = textoRespuesta.replace(/```json/g, '').replace(/```/g, '').trim()
 
-    const jsonIA = JSON.parse(textoRespuesta);
-    console.log("🤖 Respuesta Gemini:", jsonIA);
+    const jsonIA = JSON.parse(textoRespuesta)
+    console.log("🤖 Respuesta Gemini:", jsonIA)
 
     return {
         regar: jsonIA.regar === true,
         justificacion: jsonIA.justificacion || "Decisión tomada sin justificación."
-    };
+    }
 
   } catch (error) {
-    console.error("Error con Gemini:", error);
-    return { regar: false, justificacion: "Error de conexión con la IA." };
+    console.error("Error con Gemini:", error)
+    return { regar: false, justificacion: "Error de conexión con la IA." }
   }
-};
+}
