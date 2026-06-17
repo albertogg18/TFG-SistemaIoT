@@ -32,3 +32,16 @@ export const actualizarConfiguracion = async (datosConfiguracion: ConfiguracionS
     return false
   }
 }
+
+export const getEstadoSistema = async (): Promise<any> => {
+  try {
+    const respuesta = await fetch(`${API_URL}/estado`)
+    if (!respuesta.ok) {
+      throw new Error('Error al obtener el estado del sistema')
+    }
+    return await respuesta.json()
+  } catch (error) {
+    console.error("Error al obtener estado:", error)
+    return null
+  }
+}

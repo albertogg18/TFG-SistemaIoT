@@ -1,83 +1,48 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Box, Typography, CircularProgress } from '@mui/material'
 import { OrigenRiego } from '../../model/Lecturas'
-import { activarRiegoManual, actualizarConfiguracion } from '../../services/riegoService'
-import { ConfiguracionSistema } from '../../model/Configuracion'
+import { useRiego } from '../../hooks/useRiego'
 
-// Iconos
 import TouchAppIcon from '@mui/icons-material/TouchApp'
 import TuneIcon from '@mui/icons-material/Tune'
 import PsychologyIcon from '@mui/icons-material/Psychology'
 import WaterIcon from '@mui/icons-material/Water'
 import SettingsIcon from '@mui/icons-material/Settings'
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 
 import styles from './RiegoStyle.module.css'
 
 export const Riego = () => {
+  // Importamos la lógica de negocio desde nuestro nuevo Hook
+  const {
+    enviandoOrden,
+    justificacionIA,
+    modoActivoServidor,
+    configActual,
+    cambiarIntervalo,
+    activarReglas,
+    activarManual,
+    activarIA
+  } = useRiego()
+
+  // Estados estrictamente visuales y de formularios
   const [modo, setModo] = useState<OrigenRiego>(OrigenRiego.MANUAL)
-  const [enviandoOrden, setEnviandoOrden] = useState<boolean>(false)
-
-  // --- Estado para Configuración General ---
-  const [intervaloMuestreo, setIntervaloMuestreo] = useState<number>(30) // 30 minutos por defecto
-
-  // --- Estados para el formulario de reglas ---
+  const [intervaloMuestreo, setIntervaloMuestreo] = useState<number>(30)
   const [humedadMinima, setHumedadMinima] = useState<number>(40)
   const [temperaturaMaxima, setTemperaturaMaxima] = useState<number>(40)
   const [duracionRiego, setDuracionRiego] = useState<number>(5)
 
-  // Manejador del Intervalo de Muestreo
-  const manejarGuardarIntervalo = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setEnviandoOrden(true) 
-
-    const payload: ConfiguracionSistema = { 
-      intervaloMuestreo: intervaloMuestreo 
-    }
-
-    const exito = await actualizarConfiguracion(payload)
-    
-    if (exito) {
-      alert(`Intervalo de muestreo actualizado a: ${intervaloMuestreo} minutos.`)
-    } else {
-      alert(`Error al guardar el intervalo en el servidor.`)
-    }
-    setEnviandoOrden(false)
-  }
-
-  const manejarGuardarReglas = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setEnviandoOrden(true)
-
-    const payload: ConfiguracionSistema = {
-      modo: OrigenRiego.REGLAS,
-      reglas: {
-        humedadMinima: humedadMinima,
-        temperaturaMaxima: temperaturaMaxima,
-        duracionRiego: duracionRiego
+  // Sincronizar los formularios con la base de datos cuando se carga la configuración
+  useEffect(() => {
+    if (configActual) {
+      setIntervaloMuestreo(configActual.intervalo_minutos || 30)
+      if (configActual.reglas) {
+        setHumedadMinima(configActual.reglas.humedad_minima || 40)
+        setTemperaturaMaxima(configActual.reglas.temp_maxima || 40)
+        setDuracionRiego(configActual.reglas.duracion_segundos || 5)
       }
     }
-
-    const exito = await actualizarConfiguracion(payload)
-    
-    if (exito) {
-      alert(`Reglas guardadas correctamente en la nube.`)
-    } else {
-      alert(`Error al guardar las reglas.`)
-    }
-    setEnviandoOrden(false)
-  }
-
-  const manejarRiegoManual = async () => {
-    try {
-      setEnviandoOrden(true)
-      await activarRiegoManual()
-      alert('¡Orden enviada correctamente! La bomba se activará en breves segundos.')
-    } catch (error) {
-      alert('Error de comunicación con el servidor. No se pudo activar el riego.')
-    } finally {
-      setEnviandoOrden(false)
-    }
-  }
+  }, [configActual])
 
   return (
     <Box>
@@ -102,13 +67,14 @@ export const Riego = () => {
           Define cada cuánto tiempo el microcontrolador debe leer los sensores y enviar datos a la nube.
         </Typography>
         
-        <form onSubmit={manejarGuardarIntervalo} className="flex flex-col sm:flex-row items-end gap-4">
+        <form 
+          onSubmit={(e) => { e.preventDefault(); cambiarIntervalo(intervaloMuestreo); }} 
+          className="flex flex-col sm:flex-row items-end gap-4"
+        >
           <Box className={styles.inputGroup}>
             <label className={styles.label}>Intervalo de muestreo (minutos)</label>
             <input 
-              type="number" 
-              min="1" 
-              className={styles.inputField} 
+              type="number" min="1" className={styles.inputField} 
               value={intervaloMuestreo}
               onChange={(e) => setIntervaloMuestreo(parseInt(e.target.value) || 1)}
             />
@@ -118,58 +84,32 @@ export const Riego = () => {
           </button>
         </form>
       </Box>
-      {/* ------------------------------------------------ */}
 
-
-      <Typography variant="h5" className="font-bold text-emerald-900 mb-4 mt-8">
+      <Typography variant="h5" className="font-bold text-emerald-900 mb-4 mt-8 flex items-center gap-2">
         Modo de Operación
+        <span className="text-sm font-normal text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200 ml-2">
+          Activo en servidor: <strong>{modoActivoServidor || "Cargando..."}</strong>
+        </span>
       </Typography>
 
       {/* REJILLA DE TARJETAS DE SELECCIÓN */}
       <Box className={styles.gridModos}>
-        <Box 
-          className={modo === OrigenRiego.MANUAL ? styles.cardModoActive : styles.cardModo}
-          onClick={() => setModo(OrigenRiego.MANUAL)}
-        >
-          <Box className={modo === OrigenRiego.MANUAL ? styles.iconWrapperActive : styles.iconWrapper}>
-            <TouchAppIcon fontSize="large" />
-          </Box>
-          <Typography className={modo === OrigenRiego.MANUAL ? styles.modoTitleActive : styles.modoTitle}>
-            Riego Manual
-          </Typography>
-          <Typography className={styles.modoDesc}>
-            Toma el control absoluto. El agua solo se activará cuando decidas pulsar el botón.
-          </Typography>
+        <Box className={modo === OrigenRiego.MANUAL ? styles.cardModoActive : styles.cardModo} onClick={() => setModo(OrigenRiego.MANUAL)}>
+          <Box className={modo === OrigenRiego.MANUAL ? styles.iconWrapperActive : styles.iconWrapper}><TouchAppIcon fontSize="large" /></Box>
+          <Typography className={modo === OrigenRiego.MANUAL ? styles.modoTitleActive : styles.modoTitle}>Riego Manual</Typography>
+          <Typography className={styles.modoDesc}>Toma el control absoluto. El agua solo se activará cuando decidas pulsar el botón.</Typography>
         </Box>
 
-        <Box 
-          className={modo === OrigenRiego.REGLAS ? styles.cardModoActive : styles.cardModo}
-          onClick={() => setModo(OrigenRiego.REGLAS)}
-        >
-          <Box className={modo === OrigenRiego.REGLAS ? styles.iconWrapperActive : styles.iconWrapper}>
-            <TuneIcon fontSize="large" />
-          </Box>
-          <Typography className={modo === OrigenRiego.REGLAS ? styles.modoTitleActive : styles.modoTitle}>
-            Inteligente por Reglas
-          </Typography>
-          <Typography className={styles.modoDesc}>
-            Define umbrales de humedad y temperatura para que el sistema riegue por ti.
-          </Typography>
+        <Box className={modo === OrigenRiego.REGLAS ? styles.cardModoActive : styles.cardModo} onClick={() => setModo(OrigenRiego.REGLAS)}>
+          <Box className={modo === OrigenRiego.REGLAS ? styles.iconWrapperActive : styles.iconWrapper}><TuneIcon fontSize="large" /></Box>
+          <Typography className={modo === OrigenRiego.REGLAS ? styles.modoTitleActive : styles.modoTitle}>Inteligente por Reglas</Typography>
+          <Typography className={styles.modoDesc}>Define umbrales de humedad y temperatura para que el sistema riegue por ti.</Typography>
         </Box>
 
-        <Box 
-          className={modo === OrigenRiego.AUTOMATICO ? styles.cardModoActive : styles.cardModo}
-          onClick={() => setModo(OrigenRiego.AUTOMATICO)}
-        >
-          <Box className={modo === OrigenRiego.AUTOMATICO ? styles.iconWrapperActive : styles.iconWrapper}>
-            <PsychologyIcon fontSize="large" />
-          </Box>
-          <Typography className={modo === OrigenRiego.AUTOMATICO ? styles.modoTitleActive : styles.modoTitle}>
-            Inteligente por IA
-          </Typography>
-          <Typography className={styles.modoDesc}>
-            Un modelo de aprendizaje automático decide el riego basándose en el clima.
-          </Typography>
+        <Box className={modo === OrigenRiego.AUTOMATICO ? styles.cardModoActive : styles.cardModo} onClick={() => setModo(OrigenRiego.AUTOMATICO)}>
+          <Box className={modo === OrigenRiego.AUTOMATICO ? styles.iconWrapperActive : styles.iconWrapper}><PsychologyIcon fontSize="large" /></Box>
+          <Typography className={modo === OrigenRiego.AUTOMATICO ? styles.modoTitleActive : styles.modoTitle}>Inteligente por IA</Typography>
+          <Typography className={styles.modoDesc}>Un modelo de lenguaje avanzado decide el riego basándose en el clima y especie.</Typography>
         </Box>
       </Box>
 
@@ -178,76 +118,37 @@ export const Riego = () => {
         
         {modo === OrigenRiego.MANUAL && (
           <Box className="text-center py-4">
-            <Typography variant="h5" className={styles.panelTitle}>
-              Panel de Control Manual
-            </Typography>
-            <Typography className={styles.panelDesc}>
-              Pulsa el botón inferior para activar la bomba de agua en tiempo real.
-            </Typography>
-            
-            <button 
-              className={styles.btnManual} 
-              onClick={manejarRiegoManual}
-              disabled={enviandoOrden}
-              style={{ opacity: enviandoOrden ? 0.7 : 1, cursor: enviandoOrden ? 'not-allowed' : 'pointer' }}
-            >
-              {enviandoOrden ? (
-                <><CircularProgress size={20} color="inherit" /> Enviando señal...</>
-              ) : (
-                <><WaterIcon /> Activar Riego Ahora</>
-              )}
+            <Typography variant="h5" className={styles.panelTitle}>Panel de Control Manual</Typography>
+            <Typography className={styles.panelDesc}>Pulsa el botón inferior para activar la bomba de agua en tiempo real.</Typography>
+            <button className={styles.btnManual} onClick={activarManual} disabled={enviandoOrden} style={{ opacity: enviandoOrden ? 0.7 : 1, cursor: enviandoOrden ? 'not-allowed' : 'pointer' }}>
+              {enviandoOrden ? <><CircularProgress size={20} color="inherit" /> Enviando señal...</> : <><WaterIcon /> Activar Riego Ahora</>}
             </button>
           </Box>
         )}
 
         {modo === OrigenRiego.REGLAS && (
           <Box>
-            <Typography variant="h5" className={styles.panelTitle}>
-              Configuración de Reglas Lógicas
-            </Typography>
-            <Typography className={styles.panelDesc}>
-              El sistema evaluará estas tres condiciones. Si la humedad cae por debajo del mínimo, o la temperatura supera el máximo, se iniciará el riego.
-            </Typography>
-            
-            <form onSubmit={manejarGuardarReglas} className={styles.configGrid}>
+            <Typography variant="h5" className={styles.panelTitle}>Configuración de Reglas Lógicas</Typography>
+            <Typography className={styles.panelDesc}>El sistema evaluará estas tres condiciones. Si la humedad cae por debajo del mínimo, o la temperatura supera el máximo, se iniciará el riego.</Typography>
+            <form 
+              onSubmit={(e) => { e.preventDefault(); activarReglas(humedadMinima, temperaturaMaxima, duracionRiego); }} 
+              className={styles.configGrid}
+            >
               <Box className={styles.inputGroup}>
                 <label className={styles.label}>Humedad del Suelo Mínima (%)</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  max="100" 
-                  className={styles.inputField} 
-                  value={humedadMinima}
-                  onChange={(e) => setHumedadMinima(parseInt(e.target.value) || 0)}
-                />
+                <input type="number" min="0" max="100" className={styles.inputField} value={humedadMinima} onChange={(e) => setHumedadMinima(parseInt(e.target.value) || 0)}/>
               </Box>
-              
               <Box className={styles.inputGroup}>
                 <label className={styles.label}>Temperatura Máxima (°C)</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  max="50" 
-                  className={styles.inputField} 
-                  value={temperaturaMaxima}
-                  onChange={(e) => setTemperaturaMaxima(parseInt(e.target.value) || 0)}
-                />
+                <input type="number" min="0" max="50" className={styles.inputField} value={temperaturaMaxima} onChange={(e) => setTemperaturaMaxima(parseInt(e.target.value) || 0)}/>
               </Box>
-
               <Box className={styles.inputGroup}>
                 <label className={styles.label}>Duración del Riego (segundos)</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  className={styles.inputField} 
-                  value={duracionRiego}
-                  onChange={(e) => setDuracionRiego(parseInt(e.target.value) || 0)}
-                />
+                <input type="number" min="1" className={styles.inputField} value={duracionRiego} onChange={(e) => setDuracionRiego(parseInt(e.target.value) || 0)}/>
               </Box>
-              
               <Box className="sm:col-span-1 flex items-end">
-                <button type="submit" className={`${styles.btnGuardar} w-full`}>
-                  Guardar Reglas
+                <button type="submit" disabled={enviandoOrden} className={`${styles.btnGuardar} w-full`}>
+                  {enviandoOrden ? 'Guardando...' : 'Guardar y Activar Reglas'}
                 </button>
               </Box>
             </form>
@@ -255,14 +156,32 @@ export const Riego = () => {
         )}
 
         {modo === OrigenRiego.AUTOMATICO && (
-          <Box className="py-4">
-            <Typography variant="h5" className={styles.panelTitle}>
-              Modo Aprendizaje Automático Activo
+          <Box className="py-2">
+            <Typography variant="h5" className={styles.panelTitle}>Modelo de Razonamiento LLM</Typography>
+            <span className={styles.iaBadge}>Google Gemini Engine Online</span>
+            <Typography className="text-gray-600 mt-4 leading-relaxed text-sm mb-6">
+              En este modo, las decisiones de riego y el análisis de la telemetría han sido delegadas al modelo fundacional de Google, contextualizado para botánica.
             </Typography>
-            <span className={styles.iaBadge}>Machine Learning Engine Online</span>
-            <Typography className="text-gray-600 mt-4 leading-relaxed text-sm">
-              En este modo, las decisiones han sido delegadas al modelo entrenado de Inteligencia Artificial.
-            </Typography>
+
+            <Box className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 p-5 rounded-2xl mb-6 shadow-inner">
+              <Box className="flex items-center gap-2 mb-2">
+                <AutoAwesomeIcon sx={{ color: '#059669', fontSize: 20 }} />
+                <Typography variant="subtitle2" className="font-bold text-emerald-900 uppercase tracking-wider text-xs">
+                  Última evaluación de la IA:
+                </Typography>
+              </Box>
+              <Typography className="text-base text-emerald-800 italic font-medium">
+                "{justificacionIA}"
+              </Typography>
+            </Box>
+
+            <button 
+              className={styles.btnGuardar} 
+              onClick={activarIA}
+              disabled={enviandoOrden}
+            >
+              {enviandoOrden ? 'Activando...' : 'Activar Inteligencia Artificial'}
+            </button>
           </Box>
         )}
       </Box>
