@@ -35,14 +35,14 @@ exports.evaluarRiego = async (sensores, fechaUltimoRiego) => {
       No incluyas texto adicional ni bloques markdown.
     `
 
-    console.log("🧠 Consultando a Gemini con contexto temporal y botánico...")
+    console.log("Consultando a Gemini con contexto temporal y botánico...")
     const result = await model.generateContent(prompt)
     let textoRespuesta = result.response.text().trim()
 
     textoRespuesta = textoRespuesta.replace(/```json/g, '').replace(/```/g, '').trim()
 
     const jsonIA = JSON.parse(textoRespuesta)
-    console.log("🤖 Respuesta Gemini:", jsonIA)
+    console.log("Respuesta Gemini:", jsonIA)
 
     return {
         regar: jsonIA.regar === true,
