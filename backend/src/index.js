@@ -10,8 +10,24 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+const inicializarConfiguracion = async () => {
+  try {
+    const config = await Configuracion.findOne()
+    if (!config) {
+      console.log('Creando documento inicial de configuración en MongoDB...')
+      await Configuracion.create({})
+    } else {
+      console.log('Configuración cargada desde MongoDB.')
+    }
+  } catch (error) {
+    console.error('Error al inicializar la configuración:', error)
+  }
+}
+
 // Conectar a la base de datos
-connectDB()
+connectDB().then(() => {
+    inicializarConfiguracion();
+})
 
 // Cargar las rutas
 app.use('/api', require('./routes/LecturasRoutes'))
