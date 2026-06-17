@@ -1,4 +1,6 @@
 const Lectura = require('../models/Lectura')
+const Configuracion = require('../models/Configuracion')
+const GeminiService = require('../services/GeminiService')
 
 // Controlador para recibir datos de los sensores
 exports.recibirDatosSensores = async (req, res) => {
