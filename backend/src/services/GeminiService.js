@@ -26,6 +26,8 @@ exports.evaluarRiego = async (sensores, fechaUltimoRiego) => {
       - Último riego realizado: ${fechaUltimoRiego}
 
       Basándote en estos datos botánicos y ambientales, ¿consideras apropiado que se riegue la planta ahora mismo?
+      Ten en cuenta que el sensor para la humedad ambiente marca 100% al estar completamente sumergido en agua, por lo que
+      sus valores oscilan entre 40% (muy seco) y 60% (muy húmedo).
 
       Para responder, hazlo ÚNICAMENTE con un objeto JSON válido con el siguiente formato exacto:
       {
