@@ -17,6 +17,7 @@ export const Riego = () => {
   const {
     enviandoOrden,
     justificacionIA,
+    bloqueoActivo,
     modoActivoServidor,
     configActual,
     cambiarIntervalo,
@@ -162,12 +163,12 @@ export const Riego = () => {
             <Typography className="text-gray-600 mt-4 leading-relaxed text-sm mb-6">
               En este modo, las decisiones de riego y el análisis de la telemetría han sido delegadas al modelo fundacional de Google, contextualizado para botánica.
             </Typography>
-
+            
             <Box className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 p-5 rounded-2xl mb-6 shadow-inner">
               <Box className="flex items-center gap-2 mb-2">
                 <AutoAwesomeIcon sx={{ color: '#059669', fontSize: 20 }} />
                 <Typography variant="subtitle2" className="font-bold text-emerald-900 uppercase tracking-wider text-xs">
-                  Última evaluación de la IA:
+                   Última evaluación de la IA:
                 </Typography>
               </Box>
               <Typography className="text-base text-emerald-800 italic font-medium">
@@ -175,9 +176,23 @@ export const Riego = () => {
               </Typography>
             </Box>
 
+            {bloqueoActivo && (
+              <Box className="bg-orange-50 border border-orange-200 p-4 rounded-xl mb-6 flex items-start gap-3 shadow-sm">
+                <Typography variant="body1" className="text-orange-500 mt-0.5">🔒</Typography>
+                <Box>
+                  <Typography variant="subtitle2" className="font-bold text-orange-900 uppercase tracking-wider text-xs mb-1">
+                    Bloqueo de Seguridad Activo
+                  </Typography>
+                  <Typography className="text-sm text-orange-800 font-medium">
+                    El sistema entra en reposo. {bloqueoActivo}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+
             <button 
-              className={styles.btnGuardar} 
-              onClick={activarIA}
+               className={styles.btnGuardar} 
+               onClick={activarIA}
               disabled={enviandoOrden}
             >
               {enviandoOrden ? 'Activando...' : 'Activar Inteligencia Artificial'}

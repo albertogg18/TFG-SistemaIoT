@@ -5,6 +5,7 @@ import { activarRiegoManual, actualizarConfiguracion, getEstadoSistema } from '.
 export const useRiego = () => {
   const [enviandoOrden, setEnviandoOrden] = useState<boolean>(false)
   const [justificacionIA, setJustificacionIA] = useState<string>("Sincronizando con el servidor...")
+  const [bloqueoActivo, setBloqueoActivo] = useState<string | null>(null)
   const [modoActivoServidor, setModoActivoServidor] = useState<string>("")
   
   const [configActual, setConfigActual] = useState<any>(null)
@@ -13,6 +14,7 @@ export const useRiego = () => {
     const estado = await getEstadoSistema()
     if (estado) {
       setJustificacionIA(estado.justificacion_ia || "Esperando evaluación...")
+      setBloqueoActivo(estado.bloqueo_activo || null)
       setModoActivoServidor(estado.modo)
       setConfigActual(estado)
     }
@@ -74,6 +76,7 @@ export const useRiego = () => {
   return {
     enviandoOrden,
     justificacionIA,
+    bloqueoActivo,
     modoActivoServidor,
     configActual,
     cambiarIntervalo,

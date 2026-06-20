@@ -10,7 +10,10 @@ const configuracionSchema = new mongoose.Schema({
   },
   riegoManualPendiente: { type: Boolean, default: false },
   riegoIAPendiente: { type: Boolean, default: false },
-  justificacionIA: { type: String, default: "Esperando evaluación..." }
+  justificacionIA: { type: String, default: "Esperando evaluación..." },
+  bloqueoActivo: { type: String, default: null }
+}, {
+  versionKey: false
 })
 
 module.exports = mongoose.model('Configuracion', configuracionSchema)

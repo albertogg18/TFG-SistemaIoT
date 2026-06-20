@@ -77,6 +77,7 @@ exports.verificarEstadoRiego = async (req, res) => {
       modo: config.modo,
       intervalo_minutos: config.intervaloMuestreo,
       justificacion_ia: config.justificacionIA,
+      bloqueo_activo: config.bloqueoActivo,
       reglas: {
         humedad_minima: config.reglas.humedadMinima,
         temp_maxima: config.reglas.temperaturaMaxima,

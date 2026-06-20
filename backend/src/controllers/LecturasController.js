@@ -13,44 +13,44 @@ exports.recibirDatosSensores = async (req, res) => {
 
     // --- LÓGICA DE IA Y SEGURIDAD ---
     const config = await Configuracion.findOne()
-
     if (config && config.modo === 'automatico') {
-      console.log("🔍 Evaluando seguridad para riego por IA...")
+      console.log("-> Evaluando seguridad para riego por IA...")
 
       // 1. Buscamos en la BD cuándo fue el último riego
       const ultimoRiego = await Lectura.findOne({ evento_riego: true }).sort({ timestamp: -1 })
-
       let textoFechaUltimoRiego = "Nunca se ha regado desde que hay registros."
+      
       if (ultimoRiego) {
         textoFechaUltimoRiego = new Date(ultimoRiego.timestamp).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })
-
+        
         // Regla de Seguridad: Cooldown de 12 horas
         const horas = (Date.now() - new Date(ultimoRiego.timestamp).getTime()) / (1000 * 60 * 60)
         if (horas < 12) {
-          config.justificacionIA = `Bloqueo de seguridad: Se regó hace solo ${horas.toFixed(1)} horas.`
+          config.bloqueoActivo = `Se regó hace solo ${horas.toFixed(1)} horas.`
           await config.save()
-          console.log(config.justificacionIA)
+          console.log(`Bloqueo de seguridad: ${config.bloqueoActivo}`)
           return
         }
       }
 
       // 2. Regla de Seguridad: Suelo muy húmedo
       if (datos.sensores.humedad_suelo > 65) {
-        config.justificacionIA = "Bloqueo de seguridad: El suelo ya está muy húmedo (>65%)."
+        config.bloqueoActivo = "El suelo ya está muy húmedo (>65%)."
         await config.save()
-        console.log(config.justificacionIA)
+        console.log(`Bloqueo de seguridad: ${config.bloqueoActivo}`)
         return
       }
 
       // 3. Consulta a Gemini pasándole las lecturas y la fecha del último riego
       const respuestaIA = await GeminiService.evaluarRiego(datos.sensores, textoFechaUltimoRiego)
+      
+      config.bloqueoActivo = null
       config.justificacionIA = respuestaIA.justificacion
-
+      
       if (respuestaIA.regar) {
         config.riegoIAPendiente = true
         console.log("La IA ha ordenado regar la planta")
       }
-
       await config.save()
     }
 
