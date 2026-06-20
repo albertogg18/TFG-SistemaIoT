@@ -13,44 +13,46 @@ exports.recibirDatosSensores = async (req, res) => {
 
     // --- LÓGICA DE IA Y SEGURIDAD ---
     const config = await Configuracion.findOne()
-    if (config && config.modo === 'automatico') {
-      console.log("-> Evaluando seguridad para riego por IA...")
 
-      // 1. Buscamos en la BD cuándo fue el último riego
+    if (config && config.modo === 'automatico') {
+      console.log("🔍 Evaluando situación para riego por IA...")
+
+      // 1. Preparamos datos del último riego
       const ultimoRiego = await Lectura.findOne({ evento_riego: true }).sort({ timestamp: -1 })
       let textoFechaUltimoRiego = "Nunca se ha regado desde que hay registros."
+      let horasDesdeUltimoRiego = 999;
       
       if (ultimoRiego) {
         textoFechaUltimoRiego = new Date(ultimoRiego.timestamp).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })
-        
-        // Regla de Seguridad: Cooldown de 12 horas
-        const horas = (Date.now() - new Date(ultimoRiego.timestamp).getTime()) / (1000 * 60 * 60)
-        // if (horas < 12) {
-        //   config.bloqueoActivo = `Se regó hace solo ${horas.toFixed(1)} horas.`
-        //   await config.save()
-        //   console.log(`Bloqueo de seguridad: ${config.bloqueoActivo}`)
-        //   return
-        // }
+        horasDesdeUltimoRiego = (Date.now() - new Date(ultimoRiego.timestamp).getTime()) / (1000 * 60 * 60)
       }
 
-      // 2. Regla de Seguridad: Suelo muy húmedo
-      if (datos.sensores.humedad_suelo > 65) {
-        config.bloqueoActivo = "El suelo ya está muy húmedo (>65%)."
-        await config.save()
-        console.log(`Bloqueo de seguridad: ${config.bloqueoActivo}`)
-        return
-      }
-
-      // 3. Consulta a Gemini pasándole las lecturas y la fecha del último riego
+      // 2. SIEMPRE consultamos a Gemini para tener su opinión fresca en la web
       const respuestaIA = await GeminiService.evaluarRiego(datos.sensores, textoFechaUltimoRiego)
-      
-      config.bloqueoActivo = null
       config.justificacionIA = respuestaIA.justificacion
-      
-      if (respuestaIA.regar) {
-        config.riegoIAPendiente = true
-        console.log("La IA ha ordenado regar la planta")
+      config.bloqueoActivo = null // Lo limpiamos por defecto
+
+      // 3. Evaluamos el Escudo de Seguridad (SIN hacer return, solo marcamos el texto del bloqueo)
+      if (horasDesdeUltimoRiego < 12) {
+        config.bloqueoActivo = `Protección activa: Se regó hace solo ${horasDesdeUltimoRiego.toFixed(1)} horas.`
+      } else if (datos.sensores.humedad_suelo > 65) {
+        config.bloqueoActivo = `Protección activa: El suelo ya está muy húmedo (>65%).`
       }
+
+      // 4. Decisión Final: La IA quiere regar, pero... ¿Es seguro?
+      if (respuestaIA.regar === true) {
+        if (!config.bloqueoActivo) {
+          // Si no hay bloqueos, damos luz verde a la bomba
+          config.riegoIAPendiente = true
+          console.log("La IA ha ordenado regar y es SEGURO. Activando bomba...")
+        } else {
+          // Si hay bloqueos, NO bajamos la bandera de riego
+          console.log(`La IA ordenó regar, pero el sistema lo impide: ${config.bloqueoActivo}`)
+        }
+      } else {
+        console.log("La IA ha decidido NO regar en este momento.")
+      }
+
       await config.save()
     }
 
