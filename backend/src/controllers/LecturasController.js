@@ -25,12 +25,12 @@ exports.recibirDatosSensores = async (req, res) => {
         
         // Regla de Seguridad: Cooldown de 12 horas
         const horas = (Date.now() - new Date(ultimoRiego.timestamp).getTime()) / (1000 * 60 * 60)
-        if (horas < 12) {
-          config.bloqueoActivo = `Se regó hace solo ${horas.toFixed(1)} horas.`
-          await config.save()
-          console.log(`Bloqueo de seguridad: ${config.bloqueoActivo}`)
-          return
-        }
+        // if (horas < 12) {
+        //   config.bloqueoActivo = `Se regó hace solo ${horas.toFixed(1)} horas.`
+        //   await config.save()
+        //   console.log(`Bloqueo de seguridad: ${config.bloqueoActivo}`)
+        //   return
+        // }
       }
 
       // 2. Regla de Seguridad: Suelo muy húmedo
